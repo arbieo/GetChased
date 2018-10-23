@@ -12,15 +12,12 @@ public abstract class Entity : MonoBehaviour {
 	[HideInInspector]
 	public Vector2 targetVector = new Vector2(0,1);
 
-	protected bool isInvincible = false;
-	protected float invincibilityEndTime;
-	protected bool isEtheral = false;
-	protected float etheralEndTime;
-
 	public float health = 100;
 	public float collideDamage = 100;
 
-	public List<Effect> effects = new List<Effects>();
+	public List<Effect> effects = new List<Effect>();
+
+	public Dictionary<Effect.Type, List<Effect>> effectsByType = new Dictionary<Effect.Type, List<Effect>>();
 
 	public static List<Entity> entities = new List<Entity>();
 
@@ -33,34 +30,56 @@ public abstract class Entity : MonoBehaviour {
 		return transform.position;
 	}
 
+	public void AddEffect(Effect effect)
+	{
+		effect.OnAddEffect();
+		effects.Add(effect);
+		if (!effectsByType.ContainsKey(effect.type))
+		{
+			effectsByType.Add(effect.type, new List<Effect>());
+		}
+		effectsByType[effect.type].Remove(effect);
+	}
+
+	public void RemoveEffect(Effect effect)
+	{
+		effect.OnRemoveEffect();
+		effects.Remove(effect);
+		effectsByType[effect.type].Remove(effect);
+	}
+
+	public bool HasEffect(Effect.Type effectType)
+	{
+		return effectsByType.ContainsKey(effectType) && effectsByType[effectType].Count > 0;
+	}
+
 	public virtual void FixedUpdate()
 	{
-		if(isInvincible)
+		List<Effect> effectsToRemove = new List<Effect>();
+		foreach (Effect effect in effects)
 		{
-			if (Time.time > invincibilityEndTime)
+			effect.OnEffectTick();
+			if (Time.time - effect.startTime > effect.duration)
 			{
-				isInvincible = false;
+				effectsToRemove.Add(effect);
 			}
 		}
-		if(isEtheral)
+		foreach (Effect effect in effectsToRemove)
 		{
-			if (Time.time > etheralEndTime)
-			{
-				isEtheral = false;
-			}
+			RemoveEffect(effect);
 		}
 	}
 
 	public void BecomeInvincible(float time)
 	{
-		isInvincible = true;
-		invincibilityEndTime = Mathf.Max(Time.time + time, invincibilityEndTime);
+		Effect invuln = new Effect(Effect.Type.INVULN, time);
+		AddEffect(invuln);
 	}
 
 	public void BecomeEtheral(float time)
 	{
-		isEtheral = true;
-		etheralEndTime = Mathf.Max(Time.time + time, etheralEndTime);
+		Effect etheral = new Effect(Effect.Type.ETHERAL, time);
+		AddEffect(etheral);
 	}
 
 	protected void Initialize()
@@ -109,16 +128,16 @@ public abstract class Entity : MonoBehaviour {
 		Entity entity = c.attachedRigidbody.gameObject.GetComponent<Entity>();
 		if (entity != null)
 		{
-			if (isEtheral || entity.isEtheral)
+			if (HasEffect(Effect.Type.ETHERAL) || entity.HasEffect(Effect.Type.ETHERAL))
 			{
 				return;
 			}
 
-			if (!isInvincible)
+			if (!HasEffect(Effect.Type.INVULN))
 			{
 				OnImpact(entity);
 			}
-			if(!entity.isInvincible)
+			if(!entity.HasEffect(Effect.Type.INVULN))
 			{
 				entity.OnImpact(entity);
 			}

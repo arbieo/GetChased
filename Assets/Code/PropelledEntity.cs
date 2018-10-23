@@ -57,7 +57,7 @@ public abstract class PropelledEntity : Entity {
 	{
 		float moveAngle = Mathf.Atan2(moveVector.y, moveVector.x) * Mathf.Rad2Deg;
 
-		Quaternion displayRotation = Quaternion.AngleAxis(turningSpeed/maxTurnSpeed*maxBankAngle, moveVector) * Quaternion.AngleAxis(moveAngle, Vector3.forward);
+		Quaternion displayRotation = Quaternion.AngleAxis(moveAngle, Vector3.forward);
 		display.transform.rotation = displayRotation;
 	}
 
