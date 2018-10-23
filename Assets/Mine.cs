@@ -7,7 +7,7 @@ public class Mine : Entity {
 	public float aquireDistance = 40;
 	public float maxSpeed;
 	public float acceleration;
-	public float timeToArm = 1;
+	public float timeToArm = 0.5f;
 
 	LineRenderer lineRenderer;
 

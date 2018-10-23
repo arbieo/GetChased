@@ -4,7 +4,10 @@ using UnityEngine;
 
 public class FollowEnemy : PropelledEntity {
 
-	Entity target;
+	[HideInInspector]
+	public Entity target;
+
+	public float distanceToSleep = 1000;
 
 	public float throttleOnTurn = 1;
 	public float maxThrottleAngle = 90;
@@ -17,14 +20,12 @@ public class FollowEnemy : PropelledEntity {
 	public float cohesionMaxDistance = 40;
 	public float avoidMaxDistance = 20;
 
-	public bool chasePlayer = true;
-
 	public override void FixedUpdate () 
 	{
 		base.FixedUpdate();
-		if(target == null)
+		if (((Vector2)Camera.main.transform.position - (Vector2)transform.position).magnitude > distanceToSleep)
 		{
-			target = GameObject.Find("Player").GetComponent<Player>();
+			return;
 		}
 		DoPropelledStep();
 	}

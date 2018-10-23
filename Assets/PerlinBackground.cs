@@ -17,10 +17,10 @@ public class PerlinBackground : MonoBehaviour {
 	public Color color4;
 
 	public int textureSize = 16;
-	public int tileSize = 100;
 
-	public float scale = 1;
-	public float textureScale = 1;
+	public int desiredTilesHorizontal = 4;
+	public int baseTileSize = 100;
+	float tileScale = 1;
 
 	public float continentFreq = 10000;
 	public float hillFreq = 1000;
@@ -83,8 +83,13 @@ public class PerlinBackground : MonoBehaviour {
 
 	void Update()
 	{
-		int newTextureScale = (int)Mathf.Pow(2, Mathf.FloorToInt(Mathf.Log(scale, 2)));
-		if(textureScale != newTextureScale)
+		Vector2 focalPosition = new Vector2(Camera.main.transform.position.x, Camera.main.transform.position.y) * parallax;
+
+   		float screenHeightInUnits = Camera.main.orthographicSize * 2; // basically height * screen aspect ratio
+		float screenWidthInUnits = screenHeightInUnits * Screen.width/ Screen.height;
+		float tilesInScreenHorizontal = screenWidthInUnits/baseTileSize;
+		float newTileScale = (int)Mathf.Pow(2, Mathf.FloorToInt(Mathf.Log(tilesInScreenHorizontal/desiredTilesHorizontal, 2)));
+		if(tileScale != newTileScale)
 		{
 			//destroy everything
 			foreach (KeyValuePair<int,Dictionary<int, Vector2>> xPair in perlinTextures)
@@ -101,33 +106,29 @@ public class PerlinBackground : MonoBehaviour {
 			gameObjects = new Dictionary<int,Dictionary<int, GameObject>>();
 			perlinTextures = new Dictionary<int,Dictionary<int, Vector2>>();
 		}
-		textureScale = newTextureScale;
+		tileScale = newTileScale;
 
-		Vector2 focalPosition = new Vector2(Camera.main.transform.position.x, Camera.main.transform.position.y) * parallax;
+		float tileSize = baseTileSize * tileScale;
 
-		float screenWidthInUnits = Camera.main.orthographicSize * 2;
-   		float screenHeightInUnits = screenWidthInUnits * Screen.height/ Screen.width; // basically height * screen aspect ratio
-		float screenWidthInScaledTex = screenWidthInUnits/tileSize * scale/textureScale;
-   		float screenHeightInScaledTex = screenHeightInUnits/tileSize * scale/textureScale;
+		float screenWidthInScaledTiles = screenWidthInUnits/tileSize;
+   		float screenHeightInScaledTiles = screenHeightInUnits/tileSize;
 
-		Vector2 focalTextureCoord = (focalPosition/tileSize)/textureScale;
+		Vector2 focalTextureCoord = focalPosition/tileSize;
 		Vector2 focalTextureCoordFloor = new Vector2(Mathf.Floor(focalTextureCoord.x), Mathf.Floor(focalTextureCoord.y));
 		
-		int minTextureXOffset = (int)- screenWidthInScaledTex/2;
-		int maxTextureXOffset = (int)screenWidthInScaledTex/2;
-		int minTextureYOffset = (int)- screenHeightInScaledTex/2;
-		int maxTextureYOffset = (int)screenHeightInScaledTex/2;
+		int minTextureXOffset = Mathf.FloorToInt(focalTextureCoordFloor.x - screenWidthInScaledTiles/2);
+		int maxTextureXOffset = Mathf.CeilToInt(focalTextureCoordFloor.x + screenWidthInScaledTiles/2);
+		int minTextureYOffset = Mathf.FloorToInt(focalTextureCoordFloor.y - screenHeightInScaledTiles/2);
+		int maxTextureYOffset = Mathf.CeilToInt(focalTextureCoordFloor.y + screenHeightInScaledTiles/2);
 
 		List<Vector2> keysToRemove = new List<Vector2>();
 		foreach (KeyValuePair<int,Dictionary<int, Vector2>> xPair in perlinTextures)
 		{
 			int x = xPair.Key;
-			int xOffset = x - (int)focalTextureCoordFloor.x;
 			foreach (KeyValuePair<int, Vector2> yPair in xPair.Value)
 			{
 				int y = yPair.Key;
-				int yOffset = yPair.Key - (int)focalTextureCoordFloor.y;
-				if (xOffset < minTextureXOffset || xOffset > maxTextureXOffset || yOffset > maxTextureYOffset || yOffset < minTextureYOffset)
+				if (x < minTextureXOffset || x > maxTextureXOffset || y > maxTextureYOffset || y < minTextureYOffset)
 				{
 					keysToRemove.Add(new Vector2(x,y));
 				}
@@ -144,18 +145,16 @@ public class PerlinBackground : MonoBehaviour {
 		}
 
 		bool textureChanged = false;
-		for (int xOffset = minTextureXOffset; xOffset<= maxTextureXOffset; xOffset++)
+		for (int x = minTextureXOffset; x<= maxTextureXOffset; x++)
 		{
-			for (int yOffset = minTextureYOffset; yOffset<= maxTextureYOffset; yOffset++)
+			for (int y = minTextureYOffset; y<= maxTextureYOffset; y++)
 			{
-				int absoluteTexX = xOffset + (int)focalTextureCoordFloor.x;
-				int absoluteTexY = yOffset + (int)focalTextureCoordFloor.y;
-				if (!perlinTextures.ContainsKey(absoluteTexX))
+				if (!perlinTextures.ContainsKey(x))
 				{
-					perlinTextures.Add(absoluteTexX, new Dictionary<int, Vector2>());
-					gameObjects.Add(absoluteTexX, new Dictionary<int, GameObject>());
+					perlinTextures.Add(x, new Dictionary<int, Vector2>());
+					gameObjects.Add(x, new Dictionary<int, GameObject>());
 				}
-				if (!perlinTextures[absoluteTexX].ContainsKey(absoluteTexY))
+				if (!perlinTextures[x].ContainsKey(y))
 				{
 					Vector2 textureRef = GetSlot();
 					Color32[] colors = new Color32[(textureSize+2)*(textureSize+2)];
@@ -163,8 +162,8 @@ public class PerlinBackground : MonoBehaviour {
 					{
 						for(int j = 0; j< textureSize; j++)
 						{
-							float perlinX = (absoluteTexX*textureSize + i) * textureScale;
-							float perlinY = (absoluteTexY*textureSize + j) * textureScale;
+							float perlinX = (x*textureSize + i) * tileScale;
+							float perlinY = (y*textureSize + j) * tileScale;
 							float continentComponent = Mathf.PerlinNoise(perlinX*Mathf.PI/continentFreq,perlinY*Mathf.PI/continentFreq);
 							float hillComponent = Mathf.PerlinNoise(perlinX*Mathf.PI/hillFreq,perlinY*Mathf.PI/hillFreq);
 							float detailComponent = Mathf.PerlinNoise(perlinX*Mathf.PI/detailFreq,perlinY*Mathf.PI/detailFreq);
@@ -210,18 +209,17 @@ public class PerlinBackground : MonoBehaviour {
 					textureSquare.transform.parent = transform;
 					textureSquare.GetComponent<SpriteRenderer>().sprite = Sprite.Create(terrainTexture, new Rect(textureRef.x*(textureSize+2)+1, textureRef.y*(textureSize+2)+1, textureSize, textureSize), new Vector2(0f, 0f), textureSize);
 
-					perlinTextures[absoluteTexX][absoluteTexY] = textureRef;
-					gameObjects[absoluteTexX][absoluteTexY] = textureSquare;
+					perlinTextures[x][y] = textureRef;
+					gameObjects[x][y] = textureSquare;
+					gameObjects[x][y].transform.localPosition = new Vector3(x*tileSize,y*tileSize);
+					gameObjects[x][y].transform.localScale = Vector3.one * tileSize;
 				}
-				gameObjects[absoluteTexX][absoluteTexY].transform.localPosition = new Vector3(xOffset*tileSize*textureScale/scale,yOffset*tileSize*textureScale/scale, 0);
-				gameObjects[absoluteTexX][absoluteTexY].transform.localScale = new Vector3(tileSize*textureScale/scale, tileSize*textureScale/scale, 1);
 			}
 		}
 		if (textureChanged)
 		{
 			terrainTexture.Apply();
 		}
-		transform.position = Camera.main.transform.position + (Vector3)(focalTextureCoordFloor - focalTextureCoord)*tileSize*textureScale/scale;
 		Vector3 position = transform.position;
 		position.z = depth;
 		transform.position = position;

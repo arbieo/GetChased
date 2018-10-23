@@ -21,15 +21,17 @@ public class MissileLauncher : MonoBehaviour {
 	void FixedUpdate () {
 		if(target == null)
 		{
-			target = GameObject.Find("Player").GetComponent<Entity>();
+			target = gameObject.GetComponent<FollowEnemy>().target;
 		}
 
 		if(target != null && Time.time - lastLaunchTime > timeBetweenLaunches && (target.transform.position - transform.position).magnitude < minLaunchDistance)
 		{
 			lastLaunchTime = Time.time;
 			GameObject missile = GameObject.Instantiate(missilePrefab, transform.position, Quaternion.identity);
-			Entity missileEntity = missile.GetComponent<Entity>();
+			FollowEnemy missileEntity = missile.GetComponent<FollowEnemy>();
 			missileEntity.moveVector = gameObject.GetComponent<Entity>().moveVector;
+			missileEntity.speed = missileEntity.maxSpeed;
+			missileEntity.target = target;
 			missileEntity.BecomeEtheral(2);
 		}
 	}
