@@ -51,6 +51,9 @@ public class GameController : MonoBehaviour {
 	public GameObject screenDarkener;
 	public Text errorText;
 
+	public GameObject skillButtonPrefab;
+	public GameObject skillButtonContainer;
+
 	public POIController poiController;
 	public EnemySpawner enemySpawner;
 
@@ -95,9 +98,22 @@ public class GameController : MonoBehaviour {
 		Skill turretSkill = new Skill(SkillType.TURRET, "Shoot", 1, 10);
 		skills.Add(turretSkill);
 
+		foreach (Skill skill in skills)
+		{
+			GameObject skillButton = GameObject.Instantiate(skillButtonPrefab);
+			skillButton.transform.parent = skillButtonContainer.transform;
+			skillButton.transform.Find("Text").GetComponent<Text>().text = skill.name;
+			skillButton.GetComponent<Button>().onClick.AddListener(() => UseSkill(skill));
+		}
+
 		instance = this;
 		originalDeltaTime = Time.fixedDeltaTime;
 		timeSlow = timeSlowMax;
+	}
+
+	public void UseSkill(Skill skill)
+	{
+		
 	}
 
 	public void StartZoom(Vector2 launchPoint)
@@ -259,11 +275,11 @@ public class GameController : MonoBehaviour {
 				bool shouldTimeSlow = false;
 				if (Input.GetKey(KeyCode.Space))
 				{
+					shouldTimeSlow = true;
 				}
 
 				if (Input.GetKey(KeyCode.LeftArrow) && Input.GetKey(KeyCode.RightArrow))
 				{
-					shouldTimeSlow = true;
 					player.targetVector = player.moveVector;
 				}
 				else if (Input.GetKey(KeyCode.LeftArrow))
@@ -276,6 +292,7 @@ public class GameController : MonoBehaviour {
 				}
 				else
 				{
+					shouldTimeSlow = true;
 					player.targetVector = player.moveVector;
 				}
 
