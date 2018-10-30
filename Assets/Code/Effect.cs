@@ -11,6 +11,9 @@ public class Effect {
 	public enum Type {
 		INVULN,
 		ETHERAL,
+		EXCLUDE_COLLISONS,
+		SHOOTING,
+		DEATH,
 	}
 
 	public Effect(Type type, float duration)
@@ -20,17 +23,17 @@ public class Effect {
 		this.startTime = Time.time;
 	}
 
-	public virtual void OnAddEffect()
+	public virtual void OnAddEffect(Entity entity)
 	{
 
 	}
 
-	public virtual void OnRemoveEffect()
+	public virtual void OnRemoveEffect(Entity entity)
 	{
 
 	}
 
-	public virtual void OnEffectTick()
+	public virtual void OnEffectTick(Entity entity)
 	{
 		
 	}

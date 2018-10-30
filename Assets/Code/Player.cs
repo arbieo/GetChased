@@ -16,12 +16,35 @@ public class Player : PropelledEntity {
 	public CONTROL_MODE controlMode = CONTROL_MODE.TURNING;
 
 	public GameObject minePrefab;
+
+	public List<Vector2> positionHistory = new List<Vector2>();
+	public List<Vector2> moveVectorHistory = new List<Vector2>();
+	private const float HISTORY_TO_STORE = 5;
+	private float lastHistoryTick = 0;
 	
 	// Update is called once per frame
 	public override void FixedUpdate () 
 	{
 		base.FixedUpdate();
 
+		if (lastHistoryTick == 0)
+		{
+			lastHistoryTick = Time.time;
+		}
+		if (Time.time - lastHistoryTick > GameController.instance.originalDeltaTime)
+		{
+			lastHistoryTick += GameController.instance.originalDeltaTime;
+			positionHistory.Insert(0, transform.position);
+			moveVectorHistory.Insert(0, moveVector);
+			if (positionHistory.Count > HISTORY_TO_STORE/GameController.instance.originalDeltaTime)
+			{
+				positionHistory.RemoveAt(positionHistory.Count-1);
+			}
+			if (moveVectorHistory.Count > HISTORY_TO_STORE/GameController.instance.originalDeltaTime)
+			{
+				moveVectorHistory.RemoveAt(moveVectorHistory.Count-1);
+			}
+		}
 		
 		/*if(HasEffect(Effect.Type.BOOST)) 
 		{

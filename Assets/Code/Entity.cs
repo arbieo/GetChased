@@ -32,18 +32,18 @@ public abstract class Entity : MonoBehaviour {
 
 	public void AddEffect(Effect effect)
 	{
-		effect.OnAddEffect();
+		effect.OnAddEffect(this);
 		effects.Add(effect);
 		if (!effectsByType.ContainsKey(effect.type))
 		{
 			effectsByType.Add(effect.type, new List<Effect>());
 		}
-		effectsByType[effect.type].Remove(effect);
+		effectsByType[effect.type].Add(effect);
 	}
 
 	public void RemoveEffect(Effect effect)
 	{
-		effect.OnRemoveEffect();
+		effect.OnRemoveEffect(this);
 		effects.Remove(effect);
 		effectsByType[effect.type].Remove(effect);
 	}
@@ -58,7 +58,7 @@ public abstract class Entity : MonoBehaviour {
 		List<Effect> effectsToRemove = new List<Effect>();
 		foreach (Effect effect in effects)
 		{
-			effect.OnEffectTick();
+			effect.OnEffectTick(this);
 			if (Time.time - effect.startTime > effect.duration)
 			{
 				effectsToRemove.Add(effect);
@@ -80,6 +80,18 @@ public abstract class Entity : MonoBehaviour {
 	{
 		Effect etheral = new Effect(Effect.Type.ETHERAL, time);
 		AddEffect(etheral);
+	}
+
+	public void AvoidCollisions(Entity otherEntity, float duration)
+	{
+		Effect avoidEffect = new ExcludeCollisionsEffect(otherEntity, duration);
+		AddEffect(avoidEffect);
+	}
+
+	public void DelayedKill(float duration)
+	{
+		DeathEffect deathEffect = new DeathEffect(duration);
+		AddEffect(deathEffect);
 	}
 
 	protected void Initialize()
@@ -131,6 +143,27 @@ public abstract class Entity : MonoBehaviour {
 			if (HasEffect(Effect.Type.ETHERAL) || entity.HasEffect(Effect.Type.ETHERAL))
 			{
 				return;
+			}
+
+			if (HasEffect(Effect.Type.EXCLUDE_COLLISONS))
+			{
+				foreach (Effect effect in effectsByType[Effect.Type.EXCLUDE_COLLISONS])
+				{
+					if (((ExcludeCollisionsEffect)effect).entity == entity)
+					{
+						return;
+					}
+				}
+			}
+			if (entity.HasEffect(Effect.Type.EXCLUDE_COLLISONS))
+			{
+				foreach (Effect effect in entity.effectsByType[Effect.Type.EXCLUDE_COLLISONS])
+				{
+					if (((ExcludeCollisionsEffect)effect).entity == this)
+					{
+						return;
+					}
+				}
 			}
 
 			if (!HasEffect(Effect.Type.INVULN))

@@ -31,7 +31,7 @@ public class GameController : MonoBehaviour {
 	public float timeSlowMax = 10;
 	public float timeSlowRecovery = 5;
 	public float timeslowMultiplier = 0.05f;
-	float originalDeltaTime;
+	public float originalDeltaTime;
 
 	[HideInInspector]
 	public Player player;
@@ -44,6 +44,9 @@ public class GameController : MonoBehaviour {
 
 	public GameObject playerPrefab;
 	public GameObject targetPrefab;
+	public GameObject skillRangePrefab;
+	public GameObject bulletPrefab;
+
 	public CameraFollowPlayer followCamera;
 	public GameObject errorPanel;
 	public Image timeBar;
@@ -59,51 +62,34 @@ public class GameController : MonoBehaviour {
 
 	public GraphicRaycaster raycaster;
 
+	bool timeSlowActive = false;
 	float timeSlow;
 	bool disableSlow = true;
 
 	List<Skill> skills = new List<Skill>();
 
-	public class Skill
-	{
-		public SkillType type;
-		public string name;
-		public float strength;
-		public float cooldown;
-		public Skill(SkillType type, string name, float strength, float cooldown)
-		{
-			this.type = type;
-			this.name = name;
-			this.strength = strength;
-			this.cooldown = cooldown;
-		}
-	}
-
-	public enum SkillType
-	{
-		BLNK,
-		TIME_REVERSE,
-		INVULN,
-		TURRET,
-	}
+	Skill castingSkill = null;
+	GameObject castingSkillGameObject = null;
 	
 	void Awake()
 	{
-		Skill blinkSkill = new Skill(SkillType.BLNK, "Blink", 100, 10);
+		Skill blinkSkill = new Skill(Skill.Type.BLNK, "Blink", 200, 10);
 		skills.Add(blinkSkill);
-		Skill reverseSkill = new Skill(SkillType.TIME_REVERSE, "Reverse Time", 2, 5);
+		Skill reverseSkill = new Skill(Skill.Type.TIME_REVERSE, "Reverse Time", 2, 5);
 		skills.Add(reverseSkill);
-		Skill invulSkill = new Skill(SkillType.INVULN, "Roll", 1, 5);
+		Skill invulSkill = new Skill(Skill.Type.INVULN, "Roll", 1, 5);
 		skills.Add(invulSkill);
-		Skill turretSkill = new Skill(SkillType.TURRET, "Shoot", 1, 10);
+		Skill turretSkill = new Skill(Skill.Type.TURRET, "Shoot", 1, 10);
 		skills.Add(turretSkill);
 
 		foreach (Skill skill in skills)
 		{
 			GameObject skillButton = GameObject.Instantiate(skillButtonPrefab);
-			skillButton.transform.parent = skillButtonContainer.transform;
-			skillButton.transform.Find("Text").GetComponent<Text>().text = skill.name;
-			skillButton.GetComponent<Button>().onClick.AddListener(() => UseSkill(skill));
+			skillButton.transform.SetParent(skillButtonContainer.transform);
+			skill.skillButton = skillButton.GetComponent<SkillButton>();
+			skill.skillButton.text.text = skill.name;
+			skill.skillButton.button.onClick.AddListener(() => UseSkill(skill));
+			skill.skillButton.UpdateCooldown(0);
 		}
 
 		instance = this;
@@ -111,9 +97,104 @@ public class GameController : MonoBehaviour {
 		timeSlow = timeSlowMax;
 	}
 
+	public void UpdateSkills()
+	{
+		foreach (Skill skill in skills)
+		{
+			if (skill.onCooldown && Time.time - skill.lastTimeUsed > skill.cooldown)
+			{
+				skill.onCooldown = false;
+			}
+
+			if (skill.onCooldown)
+			{
+				skill.skillButton.button.enabled = false;
+				skill.skillButton.UpdateCooldown((Time.time - skill.lastTimeUsed)/skill.cooldown);
+			}
+			else
+			{
+				skill.skillButton.button.enabled = true;
+				skill.skillButton.UpdateCooldown(0);
+			}
+		}
+
+		if (castingSkill != null)
+		{
+			castingSkillGameObject.transform.position = player.transform.position;
+		}
+	}
+
 	public void UseSkill(Skill skill)
 	{
-		
+		disableSlow = false;
+
+		if (skill.type == Skill.Type.BLNK)
+		{
+			StartCasting(skill);
+		}
+		if (skill.type == Skill.Type.TIME_REVERSE)
+		{
+			int timeStepsToReverse = (int)(skill.strength/originalDeltaTime);
+			if (player.positionHistory.Count < timeStepsToReverse)
+			{
+				timeStepsToReverse = player.positionHistory.Count - 1;
+			}
+			player.transform.position = player.positionHistory[timeStepsToReverse];
+			player.moveVector = player.moveVectorHistory[timeStepsToReverse];
+
+			skill.lastTimeUsed = Time.time;
+			skill.onCooldown = true;
+		}
+		if (skill.type == Skill.Type.INVULN)
+		{
+			player.BecomeEtheral(skill.strength);
+
+			skill.lastTimeUsed = Time.time;
+			skill.onCooldown = true;
+		}
+		if (skill.type == Skill.Type.TURRET)
+		{
+			ShootingEffect shootingEffect = new ShootingEffect(bulletPrefab, 0.1f, skill.strength);
+			player.AddEffect(shootingEffect);
+
+			skill.lastTimeUsed = Time.time;
+			skill.onCooldown = true;
+		}
+
+		UpdateSkills();
+	}
+
+	public void StartCasting(Skill skill)
+	{
+		if (castingSkill != null)
+		{
+			CancelCasting();
+		}
+		castingSkill = skill;
+		castingSkillGameObject = GameObject.Instantiate(skillRangePrefab);
+		castingSkillGameObject.transform.localScale = Vector3.one * skill.strength;
+	}
+
+	public void DoCast(Vector2 position)
+	{
+		if (castingSkill.type == Skill.Type.BLNK)
+		{
+			player.transform.position = position;
+
+			castingSkill.lastTimeUsed = Time.time;
+			castingSkill.onCooldown = true;
+		}
+		CancelCasting();
+		UpdateSkills();
+	}
+
+	public void CancelCasting()
+	{
+		if (castingSkillGameObject != null)
+		{
+			GameObject.Destroy(castingSkillGameObject);
+		}
+		castingSkill = null;
 	}
 
 	public void StartZoom(Vector2 launchPoint)
@@ -206,6 +287,135 @@ public class GameController : MonoBehaviour {
 		poiController.SpawnPoints(homePoint, playingMapScale*BASIC_CAMERA_HEIGHT*30);
 	}
 
+	void CheckMenuInput()
+	{
+		if (Input.GetMouseButtonDown(0))
+		{
+
+			Vector2 mousePoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			bool closeToFriendlyBase = false;
+			bool closeToEnemyBase = false;
+			foreach (POIController.PointOfInterest poi in poiController.pointsOfInterest)
+			{
+				if(poi.type == POIController.PointType.FRIENDLY_BASE && (mousePoint-poi.location).magnitude < playingMapScale*BASIC_CAMERA_HEIGHT*10)
+				{
+					closeToFriendlyBase = true;
+				}
+				if(poi.type == POIController.PointType.ENEMY_BASE && (mousePoint-poi.location).magnitude < playingMapScale*BASIC_CAMERA_HEIGHT*5)
+				{
+					closeToEnemyBase = true;
+				}
+			}
+			if(!closeToFriendlyBase)
+			{
+				DisplayError("Launch close to a friendly base");
+			}
+			else if(closeToEnemyBase)
+			{
+				DisplayError("Cant launch on enemy base");
+			}
+			else
+			{
+				StartZoom(mousePoint);
+			}
+		}
+	}
+
+	Vector3 lastMousePosition;
+	void CheckPlayingInput()
+	{
+		timeSlowActive = false;
+		bool turnLeft = false;
+		bool turnRight = false;
+
+		for (int i = -1; i < Input.touches.Length; i++) {
+			Touch touch;
+			if (i == -1)
+			{
+				lastMousePosition = Input.mousePosition;
+				if (Input.GetMouseButton(0) ) {
+					touch = new Touch();
+					touch.fingerId = 10;
+					touch.position = Input.mousePosition;
+					touch.deltaTime = Time.deltaTime;
+					touch.deltaPosition = Input.mousePosition - lastMousePosition;
+					touch.phase =    (Input.GetMouseButtonDown(0) ? TouchPhase.Began : 
+										(touch.deltaPosition.sqrMagnitude > 1f ? TouchPhase.Moved : TouchPhase.Stationary) );
+					touch.tapCount = 1;
+				}
+				else
+				{
+					continue;
+				}
+			}
+			else
+			{
+				touch = Input.touches[i];
+			}
+			
+			PointerEventData pointerEventData = new PointerEventData(EventSystem.current);
+			pointerEventData.position = touch.position;
+			List<RaycastResult> results = new List<RaycastResult>();
+			GameController.instance.raycaster.Raycast(pointerEventData, results);
+
+			if (results.Count == 0){
+				if (castingSkill != null)
+				{
+					DoCast(Camera.main.ScreenToWorldPoint(touch.position));
+					break;
+				}
+				else {
+					Vector3 mouseViewportPosition = Camera.main.ScreenToViewportPoint(touch.position);
+					if (mouseViewportPosition.x > 0.5f)
+					{
+						turnRight = true;
+					}
+					else
+					{
+						turnLeft = true;
+					}
+				}
+			}
+			else if(touch.phase == TouchPhase.Began && castingSkill != null)
+			{
+				CancelCasting();
+			}
+		}
+     
+		
+		if (Input.GetKey(KeyCode.Space))
+		{
+			timeSlowActive = true;
+		}
+
+		if (Input.GetKey(KeyCode.LeftArrow))
+		{
+			turnLeft = true;
+		}
+		if (Input.GetKey(KeyCode.RightArrow))
+		{
+			turnRight = true;
+		}
+
+		if (turnLeft && turnRight)
+		{
+			player.targetVector = player.moveVector;
+		}
+		else if (turnLeft)
+		{
+			player.targetVector = new Vector2(-player.moveVector.y, player.moveVector.x);
+		}
+		else if (turnRight)
+		{
+			player.targetVector = new Vector2(player.moveVector.y, -player.moveVector.x);
+		}
+		else
+		{
+			timeSlowActive = true;
+			player.targetVector = player.moveVector;
+		}
+	}
+
 	// Update is called once per frame
 	void FixedUpdate () {
 		if(errorEndTime < Time.time)
@@ -216,87 +426,17 @@ public class GameController : MonoBehaviour {
 		switch (currentState)
 		{
 			case GameState.MENU:
-				if (Input.GetMouseButtonDown(0))
-				{
-
-					Vector2 mousePoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-					bool closeToFriendlyBase = false;
-					bool closeToEnemyBase = false;
-					foreach (POIController.PointOfInterest poi in poiController.pointsOfInterest)
-					{
-						if(poi.type == POIController.PointType.FRIENDLY_BASE && (mousePoint-poi.location).magnitude < playingMapScale*BASIC_CAMERA_HEIGHT*10)
-						{
-							closeToFriendlyBase = true;
-						}
-						if(poi.type == POIController.PointType.ENEMY_BASE && (mousePoint-poi.location).magnitude < playingMapScale*BASIC_CAMERA_HEIGHT*5)
-						{
-							closeToEnemyBase = true;
-						}
-					}
-					if(!closeToFriendlyBase)
-					{
-						DisplayError("Launch close to a friendly base");
-					}
-					else if(closeToEnemyBase)
-					{
-						DisplayError("Cant launch on enemy base");
-					}
-					else
-					{
-						StartZoom(mousePoint);
-					}
-				}
+				CheckMenuInput();
 			break;
 			case GameState.PLAYING:
 				if (player == null)
 				{
 					StartZoomOut();
 				}
-				/*if (Input.GetMouseButton(0))
-				{
-					PointerEventData pointerEventData = new PointerEventData(EventSystem.current);
-					pointerEventData.position = Input.mousePosition;
-					List<RaycastResult> results = new List<RaycastResult>();
-					GameController.instance.raycaster.Raycast(pointerEventData, results);
 
-					if (results.Count == 0){
-						Vector3 mouseViewportPosition = Camera.main.ScreenToViewportPoint(Input.mousePosition);
-						if (mouseViewportPosition.x > 0.5f)
-						{
-							player.targetVector = new Vector2(player.moveVector.y, -player.moveVector.x);
-						}
-						else
-						{
-							player.targetVector = new Vector2(-player.moveVector.y, player.moveVector.x);
-						}
-					}
-				} 
-				else */
-				bool shouldTimeSlow = false;
-				if (Input.GetKey(KeyCode.Space))
-				{
-					shouldTimeSlow = true;
-				}
-
-				if (Input.GetKey(KeyCode.LeftArrow) && Input.GetKey(KeyCode.RightArrow))
-				{
-					player.targetVector = player.moveVector;
-				}
-				else if (Input.GetKey(KeyCode.LeftArrow))
-				{
-					player.targetVector = new Vector2(-player.moveVector.y, player.moveVector.x);
-				}
-				else if (Input.GetKey(KeyCode.RightArrow))
-				{
-					player.targetVector = new Vector2(player.moveVector.y, -player.moveVector.x);
-				}
-				else
-				{
-					shouldTimeSlow = true;
-					player.targetVector = player.moveVector;
-				}
-
-				if (shouldTimeSlow && timeSlow > 0 && !disableSlow)
+				CheckPlayingInput();
+				
+				if (timeSlowActive && timeSlow > 0 && !disableSlow)
 				{
 					timeSlow -= originalDeltaTime;
 					Time.timeScale = timeslowMultiplier;
@@ -310,7 +450,7 @@ public class GameController : MonoBehaviour {
 				}
 				else
 				{
-					if (!shouldTimeSlow)
+					if (!timeSlowActive)
 					{
 						disableSlow = false;
 					}
@@ -331,6 +471,8 @@ public class GameController : MonoBehaviour {
 					timeBar.enabled = true;
 					timeBarBack.enabled = true;
 				}
+
+				UpdateSkills();
 			break;
 			case GameState.ANIMATE_IN:
 				float currentZoomPercent = (Time.time - stateStartTime)/zoomTime;

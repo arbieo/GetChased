@@ -32,7 +32,8 @@ public class MissileLauncher : MonoBehaviour {
 			missileEntity.moveVector = gameObject.GetComponent<Entity>().moveVector;
 			missileEntity.speed = missileEntity.maxSpeed;
 			missileEntity.target = target;
-			missileEntity.BecomeEtheral(2);
+
+			missileEntity.AvoidCollisions(gameObject.GetComponent<Entity>(), 2);
 		}
 	}
 }

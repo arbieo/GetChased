@@ -18,6 +18,7 @@ public abstract class PropelledEntity : Entity {
 	public float targetSpeed;
 
 	protected abstract void CalculateTargets();
+
 	public override Vector2 PredictPosition(float time)
 	{
 		return transform.position + (Vector3)moveVector * speed * time;

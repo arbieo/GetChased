@@ -34,8 +34,8 @@ public class EnemySpawner : MonoBehaviour {
 			SpawnEnemy(sprinterPrefab);
 			SpawnEnemy(sprinterPrefab);
 			SpawnEnemy(sprinterPrefab);
-			SpawnEnemy(sprinterPrefab);
-			SpawnEnemy(sprinterPrefab);
+			SpawnEnemy(turretPrefab);
+			SpawnEnemy(turretPrefab);
 			SpawnEnemy(turretPrefab);
 			SpawnEnemy(turretPrefab);
 			spawned = true;
