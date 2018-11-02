@@ -4,18 +4,19 @@ using UnityEngine;
 
 public class CameraFollowPlayer : MonoBehaviour {
 
-	public GameObject target;
+	GameObject target;
 
 	// Use this for initialization
-	void Start () {
-		
+	public void SetTarget (GameObject target) {
+		this.target = target;
+		transform.position = target.transform.position + Vector3.back * 100;
 	}
 	
 	// Update is called once per frame
 	public void Update () {
 		if (target != null)
 		{
-			transform.position = new Vector3(target.transform.position.x, target.transform.position.y, - 100);
+			transform.position = Vector3.MoveTowards(transform.position, target.transform.position + Vector3.back * 100, 1000*Time.fixedDeltaTime);
 		}
 	}
 }

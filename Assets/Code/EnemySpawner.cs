@@ -12,6 +12,8 @@ public class EnemySpawner : MonoBehaviour {
 	public GameObject sprinterPrefab;
 	public GameObject avoiderPrefab;
 	public GameObject turretPrefab;
+	public GameObject laserTurretPrefab;
+	public GameObject jumpPrefab;
 
 	public Entity player;
 
@@ -31,13 +33,9 @@ public class EnemySpawner : MonoBehaviour {
 	void FixedUpdate () {
 		if(isSpawning && !spawned)
 		{
-			SpawnEnemy(sprinterPrefab);
-			SpawnEnemy(sprinterPrefab);
-			SpawnEnemy(sprinterPrefab);
-			SpawnEnemy(turretPrefab);
-			SpawnEnemy(turretPrefab);
-			SpawnEnemy(turretPrefab);
-			SpawnEnemy(turretPrefab);
+			SpawnEnemy(jumpPrefab);
+			SpawnEnemy(jumpPrefab);
+			SpawnEnemy(jumpPrefab);
 			spawned = true;
 		}
 	}
@@ -90,7 +88,20 @@ public class EnemySpawner : MonoBehaviour {
 		}
 
 		GameObject enemy = GameObject.Instantiate(enemyPrefab, (Vector2)Camera.main.ViewportToWorldPoint(spawnPosition), Quaternion.identity);
-		enemy.GetComponent<FollowEnemy>().target = player;
-		enemy.GetComponent<FollowEnemy>().moveVector = (player.transform.position - enemy.transform.position).normalized;
+		if (enemy.GetComponent<FollowEnemy>() != null)
+		{
+			enemy.GetComponent<FollowEnemy>().target = player;
+			enemy.GetComponent<FollowEnemy>().moveVector = (player.transform.position - enemy.transform.position).normalized;
+		}
+		else if (enemy.GetComponent<LaserTurret>() != null)
+		{
+			enemy.GetComponent<LaserTurret>().target = player;
+			enemy.GetComponent<LaserTurret>().moveVector = (player.transform.position - enemy.transform.position).normalized;
+		}
+		else if (enemy.GetComponent<JumpEnemy>() != null)
+		{
+			enemy.GetComponent<JumpEnemy>().target = player;
+			enemy.GetComponent<JumpEnemy>().moveVector = (player.transform.position - enemy.transform.position).normalized;
+		}
 	}
 }

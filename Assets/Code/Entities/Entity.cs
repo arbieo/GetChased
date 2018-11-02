@@ -4,6 +4,15 @@ using UnityEngine;
 
 public abstract class Entity : MonoBehaviour {
 
+	public enum Team
+	{
+		PLAYER,
+		ENEMY,
+		NEUTRAL
+	}
+
+	public Team team;
+
 	public GameObject display;
 	public GameObject deathEffectPrefab;
 
@@ -12,8 +21,8 @@ public abstract class Entity : MonoBehaviour {
 	[HideInInspector]
 	public Vector2 targetVector = new Vector2(0,1);
 
-	public float health = 100;
-	public float collideDamage = 100;
+	public int health = 1;
+	public int collideDamage = 1;
 
 	public List<Effect> effects = new List<Effect>();
 
@@ -113,6 +122,15 @@ public abstract class Entity : MonoBehaviour {
 		}
 	}
 
+	public virtual void OnDamage(int damage)
+	{
+		health -= damage;
+		if (health <= 0)
+		{
+			Kill();
+		}
+	}
+
 	void OnTriggerEnter2D(Collider2D c)
 	{
 		OnHitTriggered(c);
@@ -166,13 +184,9 @@ public abstract class Entity : MonoBehaviour {
 				}
 			}
 
-			if (!HasEffect(Effect.Type.INVULN))
-			{
-				OnImpact(entity);
-			}
 			if(!entity.HasEffect(Effect.Type.INVULN))
 			{
-				entity.OnImpact(entity);
+				entity.OnImpact(this);
 			}
 		}
 	}

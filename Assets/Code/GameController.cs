@@ -36,6 +36,7 @@ public class GameController : MonoBehaviour {
 	[HideInInspector]
 	public Player player;
 	GameObject targetObject;
+	public GameObject directionArrow;
 
 	int BASIC_CAMERA_HEIGHT = 150;
 
@@ -68,28 +69,17 @@ public class GameController : MonoBehaviour {
 
 	List<Skill> skills = new List<Skill>();
 
-	Skill castingSkill = null;
+	CastSkill castingSkill = null;
 	GameObject castingSkillGameObject = null;
 	
 	void Awake()
 	{
-		Skill blinkSkill = new Skill(Skill.Type.BLNK, "Blink", 200, 10);
-		skills.Add(blinkSkill);
-		Skill reverseSkill = new Skill(Skill.Type.TIME_REVERSE, "Reverse Time", 2, 5);
-		skills.Add(reverseSkill);
-		Skill invulSkill = new Skill(Skill.Type.INVULN, "Roll", 1, 5);
-		skills.Add(invulSkill);
-		Skill turretSkill = new Skill(Skill.Type.TURRET, "Shoot", 1, 10);
-		skills.Add(turretSkill);
-
-		foreach (Skill skill in skills)
+		for (int i=0; i<4; i++)
 		{
+			Skill skill = SkillBank.skillBank[i];
 			GameObject skillButton = GameObject.Instantiate(skillButtonPrefab);
 			skillButton.transform.SetParent(skillButtonContainer.transform);
-			skill.skillButton = skillButton.GetComponent<SkillButton>();
-			skill.skillButton.text.text = skill.name;
-			skill.skillButton.button.onClick.AddListener(() => UseSkill(skill));
-			skill.skillButton.UpdateCooldown(0);
+			skillButton.GetComponent<SkillButton>().SetSkill(skill);
 		}
 
 		instance = this;
@@ -99,25 +89,6 @@ public class GameController : MonoBehaviour {
 
 	public void UpdateSkills()
 	{
-		foreach (Skill skill in skills)
-		{
-			if (skill.onCooldown && Time.time - skill.lastTimeUsed > skill.cooldown)
-			{
-				skill.onCooldown = false;
-			}
-
-			if (skill.onCooldown)
-			{
-				skill.skillButton.button.enabled = false;
-				skill.skillButton.UpdateCooldown((Time.time - skill.lastTimeUsed)/skill.cooldown);
-			}
-			else
-			{
-				skill.skillButton.button.enabled = true;
-				skill.skillButton.UpdateCooldown(0);
-			}
-		}
-
 		if (castingSkill != null)
 		{
 			castingSkillGameObject.transform.position = player.transform.position;
@@ -127,44 +98,12 @@ public class GameController : MonoBehaviour {
 	public void UseSkill(Skill skill)
 	{
 		disableSlow = false;
-
-		if (skill.type == Skill.Type.BLNK)
-		{
-			StartCasting(skill);
-		}
-		if (skill.type == Skill.Type.TIME_REVERSE)
-		{
-			int timeStepsToReverse = (int)(skill.strength/originalDeltaTime);
-			if (player.positionHistory.Count < timeStepsToReverse)
-			{
-				timeStepsToReverse = player.positionHistory.Count - 1;
-			}
-			player.transform.position = player.positionHistory[timeStepsToReverse];
-			player.moveVector = player.moveVectorHistory[timeStepsToReverse];
-
-			skill.lastTimeUsed = Time.time;
-			skill.onCooldown = true;
-		}
-		if (skill.type == Skill.Type.INVULN)
-		{
-			player.BecomeEtheral(skill.strength);
-
-			skill.lastTimeUsed = Time.time;
-			skill.onCooldown = true;
-		}
-		if (skill.type == Skill.Type.TURRET)
-		{
-			ShootingEffect shootingEffect = new ShootingEffect(bulletPrefab, 0.1f, skill.strength);
-			player.AddEffect(shootingEffect);
-
-			skill.lastTimeUsed = Time.time;
-			skill.onCooldown = true;
-		}
+		skill.Use(player);
 
 		UpdateSkills();
 	}
 
-	public void StartCasting(Skill skill)
+	public void StartCasting(CastSkill skill)
 	{
 		if (castingSkill != null)
 		{
@@ -172,18 +111,12 @@ public class GameController : MonoBehaviour {
 		}
 		castingSkill = skill;
 		castingSkillGameObject = GameObject.Instantiate(skillRangePrefab);
-		castingSkillGameObject.transform.localScale = Vector3.one * skill.strength;
+		castingSkillGameObject.transform.localScale = Vector3.one * skill.range;
 	}
 
 	public void DoCast(Vector2 position)
 	{
-		if (castingSkill.type == Skill.Type.BLNK)
-		{
-			player.transform.position = position;
-
-			castingSkill.lastTimeUsed = Time.time;
-			castingSkill.onCooldown = true;
-		}
+		castingSkill.Cast(player, position);
 		CancelCasting();
 		UpdateSkills();
 	}
@@ -229,7 +162,7 @@ public class GameController : MonoBehaviour {
 		ShowPlayUI();
 		HideMenuUI();
 
-		followCamera.target = player.gameObject;
+		followCamera.SetTarget(player.gameObject);
 		followCamera.Update();
 		enemySpawner.isSpawning = true;
 		enemySpawner.player = player;
@@ -245,7 +178,6 @@ public class GameController : MonoBehaviour {
 		currentState = GameState.ANIMATE_OUT;
 		stateStartTime = Time.time;
 		launchPoint = Camera.main.transform.position;
-		followCamera.target = null;
 		HidePlayUI();
 		enemySpawner.isSpawning = false;
 		enemySpawner.player = null;
@@ -306,113 +238,55 @@ public class GameController : MonoBehaviour {
 					closeToEnemyBase = true;
 				}
 			}
-			if(!closeToFriendlyBase)
-			{
-				DisplayError("Launch close to a friendly base");
-			}
-			else if(closeToEnemyBase)
-			{
-				DisplayError("Cant launch on enemy base");
-			}
-			else
-			{
-				StartZoom(mousePoint);
-			}
+			
+			StartZoom(mousePoint);
 		}
 	}
 
 	Vector3 lastMousePosition;
+	Vector2 touchCenter;
+	float MAX_TOUCH_DIST_IN_INCHES = 0.75f;
 	void CheckPlayingInput()
 	{
-		timeSlowActive = false;
-		bool turnLeft = false;
-		bool turnRight = false;
+		timeSlowActive = true;
+		directionArrow.SetActive(false);
 
-		for (int i = -1; i < Input.touches.Length; i++) {
-			Touch touch;
-			if (i == -1)
-			{
-				lastMousePosition = Input.mousePosition;
-				if (Input.GetMouseButton(0) ) {
-					touch = new Touch();
-					touch.fingerId = 10;
-					touch.position = Input.mousePosition;
-					touch.deltaTime = Time.deltaTime;
-					touch.deltaPosition = Input.mousePosition - lastMousePosition;
-					touch.phase =    (Input.GetMouseButtonDown(0) ? TouchPhase.Began : 
-										(touch.deltaPosition.sqrMagnitude > 1f ? TouchPhase.Moved : TouchPhase.Stationary) );
-					touch.tapCount = 1;
-				}
-				else
-				{
-					continue;
-				}
-			}
-			else
-			{
-				touch = Input.touches[i];
-			}
-			
+		if(Input.GetMouseButtonDown(0))
+		{
+			touchCenter = (Vector2)Input.mousePosition - player.targetVector * MAX_TOUCH_DIST_IN_INCHES * Screen.dpi * 0.75f;
+		}
+
+		if (Input.GetMouseButton(0))
+		{
 			PointerEventData pointerEventData = new PointerEventData(EventSystem.current);
-			pointerEventData.position = touch.position;
+			pointerEventData.position = Input.mousePosition;
 			List<RaycastResult> results = new List<RaycastResult>();
 			GameController.instance.raycaster.Raycast(pointerEventData, results);
+			
+			Vector2 mouseVector = (Vector2)Input.mousePosition - touchCenter;
+			if (mouseVector.magnitude > MAX_TOUCH_DIST_IN_INCHES * Screen.dpi)
+			{
+				touchCenter = (Vector2)Input.mousePosition - mouseVector.normalized * MAX_TOUCH_DIST_IN_INCHES*Screen.dpi;
+				mouseVector = (Vector2)Input.mousePosition - touchCenter;
+			}
 
 			if (results.Count == 0){
 				if (castingSkill != null)
 				{
-					DoCast(Camera.main.ScreenToWorldPoint(touch.position));
-					break;
+					DoCast(Camera.main.ScreenToWorldPoint(Input.mousePosition));
 				}
 				else {
-					Vector3 mouseViewportPosition = Camera.main.ScreenToViewportPoint(touch.position);
-					if (mouseViewportPosition.x > 0.5f)
-					{
-						turnRight = true;
-					}
-					else
-					{
-						turnLeft = true;
-					}
+					timeSlowActive = false;
+					player.targetVector = mouseVector;
+					directionArrow.transform.position = Camera.main.ScreenToWorldPoint(Camera.main.WorldToScreenPoint(player.transform.position) + (Vector3)mouseVector);
+					float arrowAngle = Mathf.Atan2(mouseVector.y, mouseVector.x) * Mathf.Rad2Deg;
+					directionArrow.transform.rotation = Quaternion.AngleAxis(arrowAngle, Vector3.forward);
+					directionArrow.SetActive(true);
 				}
-			}
-			else if(touch.phase == TouchPhase.Began && castingSkill != null)
+			} else if(Input.GetMouseButtonDown(0) && castingSkill != null)
 			{
 				CancelCasting();
 			}
-		}
-     
-		
-		if (Input.GetKey(KeyCode.Space))
-		{
-			timeSlowActive = true;
-		}
-
-		if (Input.GetKey(KeyCode.LeftArrow))
-		{
-			turnLeft = true;
-		}
-		if (Input.GetKey(KeyCode.RightArrow))
-		{
-			turnRight = true;
-		}
-
-		if (turnLeft && turnRight)
-		{
-			player.targetVector = player.moveVector;
-		}
-		else if (turnLeft)
-		{
-			player.targetVector = new Vector2(-player.moveVector.y, player.moveVector.x);
-		}
-		else if (turnRight)
-		{
-			player.targetVector = new Vector2(player.moveVector.y, -player.moveVector.x);
-		}
-		else
-		{
-			timeSlowActive = true;
-			player.targetVector = player.moveVector;
 		}
 	}
 
@@ -432,6 +306,7 @@ public class GameController : MonoBehaviour {
 				if (player == null)
 				{
 					StartZoomOut();
+					break;
 				}
 
 				CheckPlayingInput();
@@ -484,7 +359,7 @@ public class GameController : MonoBehaviour {
 				float zoomLevel = BASIC_CAMERA_HEIGHT * Mathf.SmoothStep(worldMapScale, playingMapScale, Mathf.Clamp((currentZoomPercent-0.5f)*2, 0, 1));
 				Camera.main.orthographicSize = zoomLevel;
 				//spawn player
-				Camera.main.transform.position = Vector3.Lerp(homePoint, player.transform.position, Mathf.SmoothStep(0,1,currentZoomPercent*2)) + new Vector3(0, 0, -100);
+				Camera.main.transform.position = Vector3.Lerp(homePoint, launchPoint, Mathf.SmoothStep(0,1,currentZoomPercent*2)) + new Vector3(0, 0, -100);
 				if (currentZoomPercent > 0.75f && targetObject != null)
 				{
 					GameObject.Destroy(targetObject);
@@ -499,7 +374,7 @@ public class GameController : MonoBehaviour {
 				}
 				float zoomOutLevel = BASIC_CAMERA_HEIGHT * Mathf.SmoothStep(playingMapScale, worldMapScale, Mathf.SmoothStep(0,1,currentZoomOutPercent*2));
 				Camera.main.orthographicSize = zoomOutLevel;
-				Camera.main.transform.position = Vector3.Lerp(launchPoint, homePoint, Mathf.Clamp((currentZoomOutPercent-0.5f)*2, 0, 1)) + new Vector3(0, 0, -100);
+				Camera.main.transform.position = Vector3.Lerp(launchPoint, homePoint, Mathf.Clamp((currentZoomOutPercent-0.75f)*4, 0, 1)) + new Vector3(0, 0, -100);
 			break;
 		}
 	}

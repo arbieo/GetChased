@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FollowEnemy : PropelledEntity {
+public class FollowEnemy : PropelledEntity, Enemy {
 
 	[HideInInspector]
-	public Entity target;
-
-	public float distanceToSleep = 1000;
+	public Entity target { get; set; }
 
 	public float throttleOnTurn = 1;
 	public float maxThrottleAngle = 90;
@@ -23,10 +21,6 @@ public class FollowEnemy : PropelledEntity {
 	public override void FixedUpdate () 
 	{
 		base.FixedUpdate();
-		if (((Vector2)Camera.main.transform.position - (Vector2)transform.position).magnitude > distanceToSleep)
-		{
-			return;
-		}
 		DoPropelledStep();
 	}
 
@@ -46,6 +40,10 @@ public class FollowEnemy : PropelledEntity {
 
 			Vector2 followVector = (predictedPosition - transform.position).normalized;
 			resultantVector += followVector.normalized*followStrength;
+		}
+		else
+		{
+			resultantVector = targetVector;
 		}
 
 		Vector2 cohesionVector = new Vector2(0,0);
