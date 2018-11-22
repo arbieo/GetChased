@@ -219,30 +219,6 @@ public class GameController : MonoBehaviour {
 		poiController.SpawnPoints(homePoint, playingMapScale*BASIC_CAMERA_HEIGHT*30);
 	}
 
-	void CheckMenuInput()
-	{
-		if (Input.GetMouseButtonDown(0))
-		{
-
-			Vector2 mousePoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			bool closeToFriendlyBase = false;
-			bool closeToEnemyBase = false;
-			foreach (POIController.PointOfInterest poi in poiController.pointsOfInterest)
-			{
-				if(poi.type == POIController.PointType.FRIENDLY_BASE && (mousePoint-poi.location).magnitude < playingMapScale*BASIC_CAMERA_HEIGHT*10)
-				{
-					closeToFriendlyBase = true;
-				}
-				if(poi.type == POIController.PointType.ENEMY_BASE && (mousePoint-poi.location).magnitude < playingMapScale*BASIC_CAMERA_HEIGHT*5)
-				{
-					closeToEnemyBase = true;
-				}
-			}
-			
-			StartZoom(mousePoint);
-		}
-	}
-
 	Vector3 lastMousePosition;
 	Vector2 touchCenter;
 	float MAX_TOUCH_DIST_IN_INCHES = 0.75f;
@@ -299,9 +275,6 @@ public class GameController : MonoBehaviour {
 
 		switch (currentState)
 		{
-			case GameState.MENU:
-				CheckMenuInput();
-			break;
 			case GameState.PLAYING:
 				if (player == null)
 				{
@@ -349,33 +322,7 @@ public class GameController : MonoBehaviour {
 
 				UpdateSkills();
 			break;
-			case GameState.ANIMATE_IN:
-				float currentZoomPercent = (Time.time - stateStartTime)/zoomTime;
-				if (currentZoomPercent>=1)
-				{
-					currentZoomPercent = 1;
-					StartPlaying();
-				}
-				float zoomLevel = BASIC_CAMERA_HEIGHT * Mathf.SmoothStep(worldMapScale, playingMapScale, Mathf.Clamp((currentZoomPercent-0.5f)*2, 0, 1));
-				Camera.main.orthographicSize = zoomLevel;
-				//spawn player
-				Camera.main.transform.position = Vector3.Lerp(homePoint, launchPoint, Mathf.SmoothStep(0,1,currentZoomPercent*2)) + new Vector3(0, 0, -100);
-				if (currentZoomPercent > 0.75f && targetObject != null)
-				{
-					GameObject.Destroy(targetObject);
-				}
-			break;
-			case GameState.ANIMATE_OUT:
-				float currentZoomOutPercent = (Time.time - stateStartTime)/zoomTime;
-				if (currentZoomOutPercent>=1)
-				{
-					currentZoomPercent = 1;
-					StartMenu();
-				}
-				float zoomOutLevel = BASIC_CAMERA_HEIGHT * Mathf.SmoothStep(playingMapScale, worldMapScale, Mathf.SmoothStep(0,1,currentZoomOutPercent*2));
-				Camera.main.orthographicSize = zoomOutLevel;
-				Camera.main.transform.position = Vector3.Lerp(launchPoint, homePoint, Mathf.Clamp((currentZoomOutPercent-0.75f)*4, 0, 1)) + new Vector3(0, 0, -100);
-			break;
+		
 		}
 	}
 }
