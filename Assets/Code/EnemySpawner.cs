@@ -15,6 +15,9 @@ public class EnemySpawner : MonoBehaviour {
 	public GameObject laserTurretPrefab;
 	public GameObject jumpPrefab;
 
+	public Rect bounds;
+	public float padding;
+
 	public Entity player;
 
 	void Awake()
@@ -66,29 +69,15 @@ public class EnemySpawner : MonoBehaviour {
 		int i = 0;
 		while(true)
 		{
-			switch(Random.Range(0,4))
-			{
-				case 0:
-				spawnPosition = new Vector3(-0.1f, Random.Range(0f,1f),10);
-				break;
-				case 1:
-				spawnPosition = new Vector3(1.1f, Random.Range(0f,1f),10);
-				break;
-				case 2:
-				spawnPosition = new Vector3(Random.Range(0f,1f), -0.1f,10);
-				break;
-				case 3:
-				spawnPosition = new Vector3(Random.Range(0f,1f), 1.1f,10);
-				break;
-				default:
-				spawnPosition = new Vector3(0,0,10);
-				break;
-			}
+			float spawnX = Random.Range(bounds.x + padding, bounds.x+bounds.width - padding);
+			float spawnY = Random.Range(bounds.y + padding, bounds.y+bounds.height - padding);
+
+			spawnPosition = new Vector3(spawnX, spawnY, 0);
 
 			bool tooClose = false;
 			foreach(Entity entity in Entity.entities)
 			{
-				Vector2 differenceVector = entity.transform.position - Camera.main.ViewportToWorldPoint(spawnPosition);
+				Vector2 differenceVector = entity.transform.position - spawnPosition;
 
 				if(differenceVector.magnitude < 50)
 				{
@@ -107,7 +96,7 @@ public class EnemySpawner : MonoBehaviour {
 			i++;
 		}
 
-		GameObject enemy = GameObject.Instantiate(enemyPrefab, (Vector2)Camera.main.ViewportToWorldPoint(spawnPosition), Quaternion.identity);
+		GameObject enemy = GameObject.Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
 		if (enemy.GetComponent<FollowEnemy>() != null)
 		{
 			enemy.GetComponent<FollowEnemy>().target = player;

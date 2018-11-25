@@ -26,25 +26,6 @@ public class Player : PropelledEntity {
 	public override void FixedUpdate () 
 	{
 		base.FixedUpdate();
-
-		if (lastHistoryTick == 0)
-		{
-			lastHistoryTick = Time.time;
-		}
-		if (Time.time - lastHistoryTick > GameController.instance.originalDeltaTime)
-		{
-			lastHistoryTick += GameController.instance.originalDeltaTime;
-			positionHistory.Insert(0, transform.position);
-			moveVectorHistory.Insert(0, moveVector);
-			if (positionHistory.Count > HISTORY_TO_STORE/GameController.instance.originalDeltaTime)
-			{
-				positionHistory.RemoveAt(positionHistory.Count-1);
-			}
-			if (moveVectorHistory.Count > HISTORY_TO_STORE/GameController.instance.originalDeltaTime)
-			{
-				moveVectorHistory.RemoveAt(moveVectorHistory.Count-1);
-			}
-		}
 		
 		/*if(HasEffect(Effect.Type.BOOST)) 
 		{
@@ -63,19 +44,9 @@ public class Player : PropelledEntity {
 		}
 	}
 
-	public void DeployMines()
-	{
-		for (int i=0;i < 10; i++)
-		{
-			GameObject mine = GameObject.Instantiate(minePrefab, transform.position, Quaternion.identity);
-			Mine mineEntity = mine.GetComponent<Mine>();
-			mineEntity.moveVector = new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * speed*1.5f;
-		}
-	}
-
 	protected override void CalculateTargets()
 	{
-		targetSpeed = maxSpeed;
+		//targetSpeed = maxSpeed;
 	}
 
 	public override void Kill()

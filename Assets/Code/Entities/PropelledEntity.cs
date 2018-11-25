@@ -29,18 +29,25 @@ public abstract class PropelledEntity : Entity {
 		float targetRotation;
 		float turnImpulse = 1/timeToTurn * maxTurnSpeed;
 		float throttleImpulse = 1/timeToSpeed * maxTurnSpeed;
-		if(angleDifference > 0 && angleDifference > turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
+		if (timeToTurn == 0)
 		{
-			targetRotation = 1;
+			turningSpeed = Mathf.Min(angleDifference/Time.fixedDeltaTime, maxTurnSpeed);
 		}
-		else if (angleDifference < 0 && angleDifference < turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
+		else
 		{
-			targetRotation = -1;
+			if(angleDifference > 0 && angleDifference > turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
+			{
+				targetRotation = 1;
+			}
+			else if (angleDifference < 0 && angleDifference < turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
+			{
+				targetRotation = -1;
+			}
+			else {
+				targetRotation = 0;
+			}
+			turningSpeed = Mathf.MoveTowards(turningSpeed, maxTurnSpeed * targetRotation, turnImpulse*Time.fixedDeltaTime);
 		}
-		else {
-			targetRotation = 0;
-		}
-		turningSpeed = Mathf.MoveTowards(turningSpeed, maxTurnSpeed * targetRotation, turnImpulse*Time.fixedDeltaTime);
 
 		speed = Mathf.Clamp(Mathf.MoveTowards(speed, targetSpeed, throttleImpulse*Time.fixedDeltaTime), -maxSpeed, maxSpeed);
 	}

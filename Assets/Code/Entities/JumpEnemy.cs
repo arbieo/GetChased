@@ -10,6 +10,8 @@ public class JumpEnemy : Entity {
 	public float timeToJump = 1;
     public float jumpDistance = 100;
     public float timeBetweenJumps = 3;
+    public float decideTime = 0.75f;
+    public bool decided = false;
 
     float lastJumpTime;
     bool jumping = false;
@@ -31,10 +33,12 @@ public class JumpEnemy : Entity {
         {
             jumping = true;
             lastJumpTime = Time.time;
+            decided = false;
         }
 
-        if (!jumping)
+        if (!decided && Time.time - lastJumpTime > timeBetweenJumps * decideTime)
         {
+            decided = true;
             targetVector = (target.transform.position - transform.position).normalized;
         }
 	}
