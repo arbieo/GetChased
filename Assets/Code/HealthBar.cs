@@ -18,6 +18,7 @@ public class HealthBar : MonoBehaviour {
 		{
 			GameObject newBlip = GameObject.Instantiate(healthPrefab);
 			newBlip.transform.SetParent(transform);
+			newBlip.transform.localScale = Vector3.one;
 			hpBlips.Add(newBlip);
 		}
 

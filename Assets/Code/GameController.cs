@@ -10,23 +10,16 @@ public class GameController : MonoBehaviour {
 
 	public enum GameState {
 		PLAYING,
-		MENU,
-		ANIMATE_IN,
-		ANIMATE_OUT
+		SHOP,
+		MENU
 	}
-
-	public float worldMapScale;
-	public float playingMapScale;
-
-	public Vector2 homePoint;
-	public Vector2 launchPoint;
 
 	public float zoomTime = 5;
 
 	float stateStartTime = 0;
 	float errorEndTime;
 
-	public GameState currentState = GameState.MENU;
+	public GameState currentState = GameState.PLAYING;
 
 	public float timeSlowMax = 10;
 	public float timeSlowRecovery = 5;
@@ -130,21 +123,6 @@ public class GameController : MonoBehaviour {
 		castingSkill = null;
 	}
 
-	public void StartZoom(Vector2 launchPoint)
-	{
-		if (currentState != GameState.MENU)
-		{
-			Debug.LogError("Invalid time to start zoom");
-		}
-		this.launchPoint = launchPoint;
-		stateStartTime = Time.time;
-		currentState = GameState.ANIMATE_IN;
-
-		targetObject = GameObject.Instantiate(targetPrefab, launchPoint, Quaternion.identity);
-		targetObject.transform.localScale = Vector3.one * worldMapScale;
-		HideMenuUI();
-	}
-
 	public void DisplayError(string error)
 	{
 		errorText.text = error;
@@ -155,7 +133,7 @@ public class GameController : MonoBehaviour {
 	public void StartPlaying()
 	{
 
-		player = GameObject.Instantiate(playerPrefab, launchPoint, Quaternion.identity).GetComponent<Player>();
+		player = GameObject.Instantiate(playerPrefab, Vector3.zero, Quaternion.identity).GetComponent<Player>();
 		currentState = GameState.PLAYING;
 		stateStartTime = Time.time;
 		
@@ -168,29 +146,12 @@ public class GameController : MonoBehaviour {
 		enemySpawner.player = player;
 	}
 
-	public void StartZoomOut()
-	{
-		foreach (Entity entity in Entity.entities)
-		{
-			entity.Kill();
-		}
-		poiController.DeactiveControllers();
-		currentState = GameState.ANIMATE_OUT;
-		stateStartTime = Time.time;
-		launchPoint = Camera.main.transform.position;
-		HidePlayUI();
-		enemySpawner.isSpawning = false;
-		enemySpawner.player = null;
-	}
-
 	public void StartMenu()
 	{
 		currentState = GameState.MENU;
 		stateStartTime = Time.time;
 		HidePlayUI();
 		ShowMenuUI();
-		Camera.main.orthographicSize = BASIC_CAMERA_HEIGHT * worldMapScale;
-		Camera.main.transform.position = (Vector3)homePoint + new Vector3(0, 0, -100);
 	}
 
 	void ShowMenuUI()
@@ -216,7 +177,6 @@ public class GameController : MonoBehaviour {
 	void Start() 
 	{
 		StartPlaying();
-		poiController.SpawnPoints(homePoint, playingMapScale*BASIC_CAMERA_HEIGHT*30);
 	}
 
 	Vector3 lastMousePosition;
@@ -268,17 +228,13 @@ public class GameController : MonoBehaviour {
 
 	// Update is called once per frame
 	void FixedUpdate () {
-		if(errorEndTime < Time.time)
-		{
-			errorPanel.GetComponent<CanvasGroup>().alpha = 0;
-		}
 
 		switch (currentState)
 		{
 			case GameState.PLAYING:
 				if (player == null)
 				{
-					StartZoomOut();
+					//dead
 					break;
 				}
 
@@ -287,9 +243,8 @@ public class GameController : MonoBehaviour {
 				if (timeSlowActive && timeSlow > 0 && !disableSlow)
 				{
 					timeSlow -= originalDeltaTime;
-					Time.timeScale = timeslowMultiplier;
-					Time.fixedDeltaTime = originalDeltaTime * timeslowMultiplier;
-					screenDarkener.SetActive(true);
+					//Time.timeScale = timeslowMultiplier;
+					//Time.fixedDeltaTime = originalDeltaTime * timeslowMultiplier;
 					if (timeSlow <= 0)
 					{
 						timeSlow = 0;
@@ -305,10 +260,9 @@ public class GameController : MonoBehaviour {
 					Time.timeScale = 1;
 					Time.fixedDeltaTime = originalDeltaTime;
 					timeSlow = Mathf.Clamp(timeSlow + Time.fixedDeltaTime * timeSlowRecovery, 0, timeSlowMax);
-					screenDarkener.SetActive(false);
 				}
 
-				timeBar.fillAmount = timeSlow/timeSlowMax;
+				/* timeBar.fillAmount = timeSlow/timeSlowMax;
 				if(timeSlow == timeSlowMax)
 				{
 					timeBar.enabled = false;
@@ -318,7 +272,7 @@ public class GameController : MonoBehaviour {
 				{
 					timeBar.enabled = true;
 					timeBarBack.enabled = true;
-				}
+				}*/
 
 				UpdateSkills();
 			break;

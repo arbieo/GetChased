@@ -26,7 +26,7 @@ public class SkillBank : MonoBehaviour {
 
         BlinkSkill blinkSkill = new BlinkSkill();
         blinkSkill.name = "Blink";
-        blinkSkill.range = 100;
+        blinkSkill.range = 200;
         blinkSkill.cooldown = 10;
         skillBank.Add(blinkSkill);
 

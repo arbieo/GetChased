@@ -24,6 +24,9 @@ public abstract class Entity : MonoBehaviour {
 	public int health = 1;
 	public int collideDamage = 1;
 
+	public bool collideImmunity = false;
+	public bool damageImmunity = false;
+
 	public List<Effect> effects = new List<Effect>();
 
 	public Dictionary<Effect.Type, List<Effect>> effectsByType = new Dictionary<Effect.Type, List<Effect>>();
@@ -115,6 +118,10 @@ public abstract class Entity : MonoBehaviour {
 
 	protected virtual void OnImpact(Entity entity)
 	{
+		if (collideImmunity)
+		{
+			return;
+		}
 		health -= entity.collideDamage;
 		if (health <= 0)
 		{
@@ -124,6 +131,10 @@ public abstract class Entity : MonoBehaviour {
 
 	public virtual void OnDamage(int damage)
 	{
+		if (damageImmunity)
+		{
+			return;
+		}
 		health -= damage;
 		if (health <= 0)
 		{

@@ -17,8 +17,6 @@ public class EnemySpawner : MonoBehaviour {
 
 	public Entity player;
 
-	public bool spawned = false;
-
 	void Awake()
 	{
 		instance = this;
@@ -31,12 +29,34 @@ public class EnemySpawner : MonoBehaviour {
 	
 	// Update is called once per frame
 	void FixedUpdate () {
-		if(isSpawning && !spawned)
+		if(isSpawning)
 		{
-			SpawnEnemy(jumpPrefab);
-			SpawnEnemy(jumpPrefab);
-			SpawnEnemy(jumpPrefab);
-			spawned = true;
+			if (Random.Range(0, 1f/Time.fixedDeltaTime) < 1)
+			{
+				int enemy = Random.Range(0, 4);
+				GameObject spawnPrefab = chaserPrefab;
+				switch (enemy)
+				{
+					case 0:
+						spawnPrefab = chaserPrefab;
+						break;
+					case 1:
+						spawnPrefab = sprinterPrefab;
+						break;
+					case 2:
+						spawnPrefab = avoiderPrefab;
+						break;
+					case 3:
+						spawnPrefab = jumpPrefab;
+						break;
+				}
+				SpawnEnemy(spawnPrefab);
+			}
+			if (Random.Range(0, 10f/Time.fixedDeltaTime) < 1)
+			{
+				SpawnEnemy(turretPrefab);
+				SpawnEnemy(laserTurretPrefab);
+			}
 		}
 	}
 
