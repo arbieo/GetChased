@@ -39,6 +39,9 @@ public class GameController : MonoBehaviour {
 	public GameObject playerPrefab;
 	public GameObject bulletPrefab;
 
+	public GameObject jumpStartEffect;
+	public GameObject jumpEndEffect;
+
 	public CameraFollowPlayer followCamera;
 
 	public EnemySpawner enemySpawner;
@@ -101,7 +104,7 @@ public class GameController : MonoBehaviour {
 
 	Vector3 lastMousePosition;
 	Vector2 touchCenter;
-	float MAX_TOUCH_DIST_IN_INCHES = 0.75f;
+	float MAX_TOUCH_DIST_IN_INCHES = 0.5f;
 	float touchStartTime = 0;
 	void CheckPlayingInput()
 	{
@@ -109,7 +112,7 @@ public class GameController : MonoBehaviour {
 
 		if(Input.GetMouseButtonDown(0))
 		{
-			touchCenter = (Vector2)Input.mousePosition - player.targetVector * MAX_TOUCH_DIST_IN_INCHES * Screen.dpi * 0.75f;
+			touchCenter = (Vector2)Input.mousePosition - player.targetVector * MAX_TOUCH_DIST_IN_INCHES * Screen.dpi * player.targetSpeed / player.maxSpeed;
 			touchStartTime = Time.time;
 		}
 
@@ -117,7 +120,9 @@ public class GameController : MonoBehaviour {
 		{
 			if (Time.time - touchStartTime < 0.15f)
 			{
-				player.transform.position = (Vector2)player.transform.position + player.moveVector.normalized * 50;
+				GameObject.Destroy(GameObject.Instantiate(jumpStartEffect, player.transform.position, Quaternion.identity),1);
+				player.transform.position = (Vector2)player.transform.position + player.moveVector.normalized * 75;
+				GameObject.Destroy(GameObject.Instantiate(jumpEndEffect, player.transform.position, Quaternion.identity), 1);
 			}
 		}
 
@@ -140,9 +145,10 @@ public class GameController : MonoBehaviour {
 			float arrowAngle = Mathf.Atan2(mouseVector.y, mouseVector.x) * Mathf.Rad2Deg;
 			directionArrow.transform.rotation = Quaternion.AngleAxis(arrowAngle, Vector3.forward);
 			directionArrow.SetActive(true);
+
+			player.targetSpeed = player.maxSpeed * mouseVector.magnitude / (MAX_TOUCH_DIST_IN_INCHES * Screen.dpi);
 		}
 	}
-
 
 	void Update()
 	{

@@ -33,7 +33,7 @@ public abstract class Entity : MonoBehaviour {
 
 	public static List<Entity> entities = new List<Entity>();
 
-	void Start () {
+	public virtual void Start () {
 		Initialize();
 	}
 

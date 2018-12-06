@@ -34,7 +34,7 @@ public class EnemySpawner : MonoBehaviour {
 	void FixedUpdate () {
 		if(isSpawning)
 		{
-			if (Random.Range(0, 1f/Time.fixedDeltaTime) < 1)
+			if (Random.Range(0, 2f/Time.fixedDeltaTime) < 1)
 			{
 				int enemy = Random.Range(0, 4);
 				GameObject spawnPrefab = chaserPrefab;
@@ -55,11 +55,11 @@ public class EnemySpawner : MonoBehaviour {
 				}
 				SpawnEnemy(spawnPrefab);
 			}
-			if (Random.Range(0, 10f/Time.fixedDeltaTime) < 1)
+			/* if (Random.Range(0, 10f/Time.fixedDeltaTime) < 1)
 			{
 				SpawnEnemy(turretPrefab);
 				SpawnEnemy(laserTurretPrefab);
-			}
+			}*/
 		}
 	}
 
@@ -79,10 +79,21 @@ public class EnemySpawner : MonoBehaviour {
 			{
 				Vector2 differenceVector = entity.transform.position - spawnPosition;
 
-				if(differenceVector.magnitude < 50)
+				if( entity.team == Entity.Team.PLAYER)
 				{
-					tooClose = true;
-					break;
+					if(differenceVector.magnitude < 100)
+					{
+						tooClose = true;
+						break;
+					}
+				}
+				else
+				{
+					if(differenceVector.magnitude < 50)
+					{
+						tooClose = true;
+						break;
+					}
 				}
 			}
 			if(!tooClose)

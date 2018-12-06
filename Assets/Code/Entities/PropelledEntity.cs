@@ -29,32 +29,48 @@ public abstract class PropelledEntity : Entity {
 		float targetRotation;
 		float turnImpulse = 1/timeToTurn * maxTurnSpeed;
 		float throttleImpulse = 1/timeToSpeed * maxTurnSpeed;
+
+		if(angleDifference > 0 && angleDifference > turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
+		{
+			targetRotation = 1;
+		}
+		else if (angleDifference < 0 && angleDifference < turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
+		{
+			targetRotation = -1;
+		}
+		else {
+			targetRotation = 0;
+		}
+
 		if (timeToTurn == 0)
 		{
-			turningSpeed = Mathf.Min(angleDifference/Time.fixedDeltaTime, maxTurnSpeed);
+			turningSpeed = maxTurnSpeed * targetRotation;
 		}
 		else
 		{
-			if(angleDifference > 0 && angleDifference > turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
-			{
-				targetRotation = 1;
-			}
-			else if (angleDifference < 0 && angleDifference < turningSpeed * (timeToTurn + Time.fixedDeltaTime) / 2)
-			{
-				targetRotation = -1;
-			}
-			else {
-				targetRotation = 0;
-			}
 			turningSpeed = Mathf.MoveTowards(turningSpeed, maxTurnSpeed * targetRotation, turnImpulse*Time.fixedDeltaTime);
 		}
 
-		speed = Mathf.Clamp(Mathf.MoveTowards(speed, targetSpeed, throttleImpulse*Time.fixedDeltaTime), -maxSpeed, maxSpeed);
+		if (Mathf.Sign (turningSpeed) == Mathf.Sign(angleDifference) && Mathf.Abs(turningSpeed) > Mathf.Abs(angleDifference/Time.fixedDeltaTime))
+		{
+			turningSpeed = angleDifference/Time.fixedDeltaTime;
+		}
+
+		if (timeToSpeed == 0)
+		{
+			speed = targetSpeed;
+		}
+		else
+		{
+			speed = Mathf.Clamp(Mathf.MoveTowards(speed, targetSpeed, throttleImpulse*Time.fixedDeltaTime), -maxSpeed, maxSpeed);
+		}
 	}
 
 	protected void MoveObject()
 	{
-		moveVector = Quaternion.Euler(0, 0, turningSpeed * Time.fixedDeltaTime) * (Vector3)moveVector;
+		float moveAngle = Mathf.Atan2(moveVector.y, moveVector.x);
+		moveAngle += turningSpeed * Time.fixedDeltaTime * Mathf.Deg2Rad;
+		moveVector = new Vector2(Mathf.Cos(moveAngle), Mathf.Sin(moveAngle));
 
 		Vector3 position = transform.position;
 		position += (Vector3)(moveVector * speed * Time.fixedDeltaTime);

@@ -22,6 +22,12 @@ public class Player : PropelledEntity {
 	private const float HISTORY_TO_STORE = 5;
 	private float lastHistoryTick = 0;
 	
+	public override void Start()
+	{
+		base.Start();
+		targetSpeed = maxSpeed * 0.5f;
+	}
+
 	// Update is called once per frame
 	public override void FixedUpdate () 
 	{
