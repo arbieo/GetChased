@@ -22,9 +22,8 @@ public class Player : PropelledEntity {
 	private const float HISTORY_TO_STORE = 5;
 	private float lastHistoryTick = 0;
 	
-	public override void Start()
+	public void Start()
 	{
-		base.Start();
 		targetSpeed = maxSpeed * 0.5f;
 	}
 
@@ -55,8 +54,9 @@ public class Player : PropelledEntity {
 		//targetSpeed = maxSpeed;
 	}
 
-	public override void Kill()
+	public override void Kill(bool giveScore = false)
 	{
-		base.Kill();
+		GameController.instance.OnPlayerKill();
+		base.Kill(giveScore);
 	}
 }

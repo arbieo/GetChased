@@ -21,6 +21,10 @@ public class Laser : MonoBehaviour {
 	
 	void OnHitTriggered(Collider2D c)
 	{
+		if(c.attachedRigidbody == null)
+		{
+			return;
+		}
 		Entity entity = c.attachedRigidbody.gameObject.GetComponent<Entity>();
 		if (entity != null)
 		{

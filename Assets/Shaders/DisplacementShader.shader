@@ -11,8 +11,6 @@
 	{
 		Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Opaque"}
 		ZWrite On Lighting Off Cull Off Fog { Mode Off } Blend One Zero
-
-		GrabPass { "_GrabTexture" }
 		
 		Pass 
 		{
@@ -21,8 +19,6 @@
 			#pragma fragment frag
 			#include "UnityCG.cginc"
 
-			sampler2D _GrabTexture;
-
 			sampler2D _MainTex;
 			fixed4 _Colour;
 
@@ -30,39 +26,28 @@
 			sampler2D _DisplacementY;
 			float  _Magnitude;
 
-			struct vin_vct
+			struct vin
 			{
 				float4 vertex : POSITION;
-				float4 color : COLOR;
-				float2 texcoord : TEXCOORD0;
 			};
 
-			struct v2f_vct
+			struct v2f
 			{
 				float4 vertex : POSITION;
-				fixed4 color : COLOR;
-				float2 texcoord : TEXCOORD0;
-
-				float4 uvgrab : TEXCOORD1;
 			};
 
 			// Vertex function 
-			v2f_vct vert (vin_vct v)
+			v2f vert (vin v)
 			{
-				v2f_vct o;
+				v2f o;
 				o.vertex = UnityObjectToClipPos(v.vertex);
-				o.color = v.color;
-
-				o.texcoord = v.texcoord;
-
-				o.uvgrab = ComputeGrabScreenPos(o.vertex);
 				return o;
 			}
 
 			// Fragment function
-			half4 frag (v2f_vct i) : COLOR
+			half4 frag (v2f i) : COLOR
 			{
-				half4 displaceX = tex2D(_DisplacementX, i.uvgrab);
+				/*half4 displaceX = tex2D(_DisplacementX, i.uvgrab);
 				half4 displaceY = tex2D(_DisplacementY, i.uvgrab);
 				half diplx = (displaceX.a-0.5)*2*_Magnitude;
 				half diply = (displaceY.a-0.5)*2*_Magnitude;
@@ -70,7 +55,8 @@
 				i.uvgrab.xy += half2(diplx, diply);
 
 				fixed4 col = tex2Dproj( _GrabTexture, UNITY_PROJ_COORD(i.uvgrab));
-				return col;
+				return col;*/
+				return fixed4(0,0,0,0);
 			}
 		
 			ENDCG

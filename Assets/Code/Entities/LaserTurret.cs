@@ -25,7 +25,6 @@ public class LaserTurret : PropelledEntity, Enemy {
 	{
 		base.FixedUpdate();
 
-
 		if (firing)
 		{
 			float laserTime = Time.time - fireStartTime;
@@ -45,8 +44,8 @@ public class LaserTurret : PropelledEntity, Enemy {
 				foreach (Laser laser in lasers)
 				{
 					laser.line.enabled = true;
-					laser.line.startWidth = 5;
-					laser.line.endWidth = 5;
+					laser.line.startWidth = 3;
+					laser.line.endWidth = 3;
 					
 					laser.laserCollider.enabled = true;
 				}
@@ -61,7 +60,7 @@ public class LaserTurret : PropelledEntity, Enemy {
 				}
 			}
 		}
-		else if (Mathf.DeltaAngle(Mathf.Atan2(moveVector.y, moveVector.x), Mathf.Atan2(targetVector.y, targetVector.x)) < acceptableDeviation 
+		else if (Mathf.DeltaAngle(Mathf.Atan2(moveVector.y, moveVector.x) * Mathf.Rad2Deg, Mathf.Atan2(targetVector.y, targetVector.x) * Mathf.Rad2Deg) < acceptableDeviation 
 			&& Time.time - fireStartTime > laserCooldownTime)
 		{
 			speed = 0;
@@ -77,12 +76,21 @@ public class LaserTurret : PropelledEntity, Enemy {
 				laser.line.enabled = false;
 				laser.laserCollider.enabled = false;
 			}
-			DoPropelledStep();
 		}
+
+		DoPropelledStep();
+	}
+
+	public void LaserOff()
+	{
+		firing = false;
 	}
 
 	protected override void CalculateTargets()
 	{
-		targetVector = (target.transform.position - transform.position).normalized;
+		if (target != null)
+		{
+			targetVector = (target.transform.position - transform.position).normalized;
+		}
 	}
 }

@@ -129,8 +129,8 @@ public class DisplacementController : MonoBehaviour {
 
 					float offset = (1-dist.magnitude/gravityEffect.size) * strength;
 
-					pixelBufferX[(int)(pixelPosition.x*displacementTextureSize.x + pixelPosition.y)] = (byte)(128 + 127 * offset * dist.normalized.x);
-					pixelBufferY[(int)(pixelPosition.x*displacementTextureSize.x + pixelPosition.y)] = (byte)(128 + 127 * offset * dist.normalized.y);
+					pixelBufferX[(int)(pixelPosition.x*displacementTextureSize.x + pixelPosition.y)] = 255;//(byte)(128 + 127 * offset * dist.normalized.x);
+					pixelBufferY[(int)(pixelPosition.x*displacementTextureSize.x + pixelPosition.y)] = 255;//(byte)(128 + 127 * offset * dist.normalized.y);
 				}
 			}
 		}

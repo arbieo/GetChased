@@ -12,9 +12,12 @@ public abstract class Entity : MonoBehaviour {
 	}
 
 	public Team team;
+	
+	public int score = 0;
+
+	public Color entityColor = Color.red;
 
 	public GameObject display;
-	public GameObject deathEffectPrefab;
 
 	[HideInInspector]
 	public Vector2 moveVector = new Vector2(0,1);
@@ -33,7 +36,7 @@ public abstract class Entity : MonoBehaviour {
 
 	public static List<Entity> entities = new List<Entity>();
 
-	public virtual void Start () {
+	public virtual void Awake () {
 		Initialize();
 	}
 
@@ -152,20 +155,36 @@ public abstract class Entity : MonoBehaviour {
 		OnHitTriggered(c);
 	}
 
-	public virtual void Kill()
+	public virtual void Kill(bool giveScore = true)
 	{
 		GameObject.Destroy(gameObject);
-		if (deathEffectPrefab != null)
+
+		GameObject deathPrefab = Resources.Load<GameObject>("Prefabs/Explosion");
+		if (team == Team.PLAYER)
 		{
-			GameObject explosion = GameObject.Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
-			var main = explosion.GetComponent<ParticleSystem>().main;
-			main.startColor = display.GetComponent<SpriteRenderer>().color;
-			GameObject.Destroy(explosion,1);
+			deathPrefab = Resources.Load<GameObject>("Prefabs/PlayerExplosion");
+		}
+		GameObject explosion = GameObject.Instantiate(deathPrefab, transform.position, Quaternion.identity);
+		var main = explosion.GetComponent<ParticleSystem>().main;
+		explosion.GetComponent<HomingParticles>().target = GameController.instance.player.gameObject;
+		main.startColor = entityColor;
+		GameObject.Destroy(explosion,5);
+
+		if (score > 0 && giveScore)
+		{
+			GameObject scorePrefab = (GameObject)Resources.Load("Prefabs/ScorePrefab");
+			GameObject scoreObject = GameObject.Instantiate(scorePrefab, transform.position, Quaternion.identity);
+			scoreObject.GetComponent<ScoreController>().text.text = score.ToString();
+			GameController.instance.AddScore(score);
 		}
 	}
 
 	void OnHitTriggered(Collider2D c)
 	{
+		if (c.attachedRigidbody == null)
+		{
+			return;
+		}
 		Entity entity = c.attachedRigidbody.gameObject.GetComponent<Entity>();
 		if (entity != null)
 		{

@@ -33,7 +33,7 @@ public class HealthBar : MonoBehaviour {
 	void Update () {
 		if (GameController.instance != null && GameController.instance.player != null)
 		{
-			SetHP(GameController.instance.player.health);
+			SetHP(GameController.instance.lives);
 		}
 	}
 }
